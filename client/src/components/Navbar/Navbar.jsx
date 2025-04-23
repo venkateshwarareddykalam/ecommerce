@@ -1,9 +1,11 @@
-import React from "react";
+// client/src/components/Navbar/Navbar.jsx
+import React, { useState, useEffect } from "react";
 import Logo from "../../assets/logo.png";
 import { IoMdSearch } from "react-icons/io";
 import { FaCartShopping } from "react-icons/fa6";
-import { FaCaretDown } from "react-icons/fa";
+import { FaCaretDown, FaUser } from "react-icons/fa";
 import DarkMode from "./DarkMode";
+import axios from "axios";
 
 const Menu = [
   {
@@ -22,12 +24,12 @@ const Menu = [
     link: "/#",
   },
   {
-    id: 3,
+    id: 4,
     name: "Mens Wear",
     link: "/#",
   },
   {
-    id: 3,
+    id: 5,
     name: "Electronics",
     link: "/#",
   },
@@ -51,7 +53,46 @@ const DropdownLinks = [
   },
 ];
 
-const Navbar = ({ handleOrderPopup }) => {
+const Navbar = ({ handleOrderPopup, handleLoginPopup }) => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userData, setUserData] = useState(null);
+
+  useEffect(() => {
+    // Check if user is authenticated
+    const checkAuth = async () => {
+      try {
+        const authResponse = await axios.get('http://localhost:4000/api/auth/is-auth', { withCredentials: true });
+        
+        if (authResponse.data.success) {
+          setIsLoggedIn(true);
+          
+          // Get user data
+          const userDataResponse = await axios.get('http://localhost:4000/api/user/data', { withCredentials: true });
+          if (userDataResponse.data.success) {
+            setUserData(userDataResponse.data.userData);
+          }
+        }
+      } catch (error) {
+        console.error("Auth check failed:", error);
+      }
+    };
+    
+    checkAuth();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      const response = await axios.post('http://localhost:4000/api/auth/logout', {}, { withCredentials: true });
+      if (response.data.success) {
+        setIsLoggedIn(false);
+        setUserData(null);
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
   return (
     <div className="shadow-md bg-white dark:bg-gray-900 dark:text-white duration-200 relative z-40">
       {/* upper Navbar */}
@@ -64,21 +105,46 @@ const Navbar = ({ handleOrderPopup }) => {
             </a>
           </div>
 
-          {/* search bar */}
+          {/* search bar and buttons */}
           <div className="flex justify-between items-center gap-4">
             <div className="relative group hidden sm:block">
               <input
                 type="text"
                 placeholder="search"
-                className="w-[200px] sm:w-[200px] group-hover:w-[300px] transition-all duration-300 rounded-full border border-gray-300 px-2 py-1 focus:outline-none focus:border-1 focus:border-primary dark:border-gray-500 dark:bg-gray-800  "
+                className="w-[200px] sm:w-[200px] group-hover:w-[300px] transition-all duration-300 rounded-full border border-gray-300 px-2 py-1 focus:outline-none focus:border-1 focus:border-primary dark:border-gray-500 dark:bg-gray-800"
               />
               <IoMdSearch className="text-gray-500 group-hover:text-primary absolute top-1/2 -translate-y-1/2 right-3" />
             </div>
 
+            {/* login/account button */}
+            {isLoggedIn ? (
+              <div className="relative group">
+                <button className="bg-gradient-to-r from-primary to-secondary transition-all duration-200 text-white py-1 px-4 rounded-full flex items-center gap-2">
+                  <FaUser className="text-white" />
+                  <span className="hidden sm:inline">{userData?.name || "Account"}</span>
+                </button>
+                <div className="absolute hidden group-hover:block w-[200px] rounded-md bg-white dark:bg-gray-800 p-2 text-black dark:text-white shadow-md right-0 mt-2">
+                  <ul>
+                    <li className="p-2 hover:bg-primary/20 rounded-md cursor-pointer">Profile</li>
+                    <li className="p-2 hover:bg-primary/20 rounded-md cursor-pointer">Orders</li>
+                    <li className="p-2 hover:bg-red-100 rounded-md cursor-pointer" onClick={handleLogout}>Logout</li>
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={handleLoginPopup}
+                className="bg-gradient-to-r from-primary to-secondary transition-all duration-200 text-white py-1 px-4 rounded-full flex items-center gap-2"
+              >
+                <FaUser className="text-white" />
+                <span className="hidden sm:inline">Login</span>
+              </button>
+            )}
+
             {/* order button */}
             <button
               onClick={() => handleOrderPopup()}
-              className="bg-gradient-to-r from-primary to-secondary transition-all duration-200 text-white  py-1 px-4 rounded-full flex items-center gap-3 group"
+              className="bg-gradient-to-r from-primary to-secondary transition-all duration-200 text-white py-1 px-4 rounded-full flex items-center gap-3 group"
             >
               <span className="group-hover:block hidden transition-all duration-200">
                 Order
@@ -114,13 +180,13 @@ const Navbar = ({ handleOrderPopup }) => {
                 <FaCaretDown className="transition-all duration-200 group-hover:rotate-180" />
               </span>
             </a>
-            <div className="absolute z-[9999] hidden group-hover:block w-[200px] rounded-md bg-white p-2 text-black shadow-md">
+            <div className="absolute z-[9999] hidden group-hover:block w-[200px] rounded-md bg-white dark:bg-gray-800 p-2 text-black dark:text-white shadow-md">
               <ul>
                 {DropdownLinks.map((data) => (
                   <li key={data.id}>
                     <a
                       href={data.link}
-                      className="inline-block w-full rounded-md p-2 hover:bg-primary/20 "
+                      className="inline-block w-full rounded-md p-2 hover:bg-primary/20"
                     >
                       {data.name}
                     </a>
